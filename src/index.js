@@ -14,7 +14,10 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Replace with the actual origin of your client app
+    origin: [
+      "http://localhost:5173",
+      "https://strides-registration.vercel.app/",
+    ], // Replace with the actual origin of your client app
     credentials: true,
   })
 );
