@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Prisma schema for AcademicDetails
+model AcademicDetails {
+  id              Int              @id
+  tenthSchool     String
+  examBoard10th   String
+  passingYear10th String
+  percentage10th  String
+  rollNo10th      String
+  twelfthSchool   String
+  examBoard12th   String
+  passingYear12th String
+  percentage12th  String
+  rollNo12th      String
+  stream12th      String
+  personalDetails PersonalDetails? @relation(fields: [id], references: [id])
+}
+
+// Prisma schema for Document
+model Document {
+  id                Int              @id @default(autoincrement())
+  personalDetailsId Int
+  name              String
+  contentType       String
+  dataURL           String
+  personalDetails   PersonalDetails? @relation(fields: [personalDetailsId], references: [id])
+}
+
+// Prisma schema for PersonalDetails with AcademicDetails and Documents embedded
+model PersonalDetails {
+  id              Int              @id @default(autoincrement())
+  firstName       String
+  middleName      String
+  lastName        String
+  email           String
+  mobileNumber    String
+  fatherName      String
+  motherName      String
+  parentsIncome   String
+  flatPlotNo      String
+  area            String
+  city            String
+  state           String
+  pincode         String
+  academicDetails AcademicDetails?
+  documents       Document[]
+}
