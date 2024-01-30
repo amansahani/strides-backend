@@ -13,24 +13,22 @@ const upload = multer({
   storage: multer.memoryStorage(), // Use memory storage since we'll upload to S3 directly from memory
 });
 
-export const createDocument = (req, res) => {
+export const createDocument = async (req, res) => {
   try {
-    console.log(req.cookies);
     const personalDetailsId = Number.parseInt(req.cookies.personalDetailsId);
     console.log("First", personalDetailsId, req.cookies);
+
     // Create a local variable to capture the correct personalDetailsId
     let capturedId = personalDetailsId;
 
     // Define a custom function to handle the file upload
-    const handleFileUpload = (err) => {
-      console.log(capturedId);
+    const handleFileUpload = async (err) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: "File upload failed" });
       }
 
       const { originalname, mimetype, buffer } = req.file;
-      console.log(originalname);
       const key = `${Date.now().toString()}-userId${originalname}`;
 
       const params = {
@@ -41,34 +39,28 @@ export const createDocument = (req, res) => {
       };
 
       const request = s3.putObject(params);
-      let document = {};
-      request.on("httpHeaders", async (statusCode, headers) => {
-        console.log("Debug 4");
-        console.log(`HTTP Headers: ${headers}`);
-        console.log(
-          `https://ipfs.filebase.io/ipfs/${headers["x-amz-meta-cid"]}`
-        );
-        document = await prisma.document.create({
-          data: {
-            name: originalname,
-            contentType: mimetype,
-            dataURL: `https://ipfs.filebase.io/ipfs/${headers["x-amz-meta-cid"]}`,
-            personalDetails: { connect: { id: capturedId } },
-          },
-        });
-      });
 
-      request.on("error", (error) => {
+      try {
+        await request.promise(); // Wait for S3 upload to complete
+      } catch (error) {
         console.error("S3 Upload Error:", error);
-        res.status(500).json({ error: "S3 upload failed" });
+        return res.status(500).json({ error: "S3 upload failed" });
+      }
+
+      const document = await prisma.document.create({
+        data: {
+          name: originalname,
+          contentType: mimetype,
+          dataURL: `https://ipfs.filebase.io/ipfs/${params.Key}`,
+          personalDetails: { connect: { id: capturedId } },
+        },
       });
 
-      request.send();
-      res.status(201).json(document);
+      return res.status(201).json(document);
     };
 
     // Invoke the `upload` middleware to handle the file upload
-    upload.single("file")(req, res, handleFileUpload);
+    return upload.single("file")(req, res, handleFileUpload);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -83,7 +75,7 @@ export const getDocuments = async (req, res) => {
       where: { personalDetailsId: parseInt(personalDetailsId) },
     });
 
-    res.status(200).json(documents);
+    return res.status(200).json(documents);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });

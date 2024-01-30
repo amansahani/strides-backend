@@ -4,8 +4,8 @@ import { prisma } from "../db/index.js";
 
 export const createPersonalDetails = async (req, res) => {
   try {
-    const body = { ...req.body, ...req.body.address };
-    delete body.address;
+    console.log("Body", req.body);
+    const body = req.body;
     const personalDetails = await prisma.personalDetails.create({
       data: body,
     });
